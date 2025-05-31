@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "firebase-functions": "^6.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.29",
+    "typescript": "^5.1.6"
+  }
+}
