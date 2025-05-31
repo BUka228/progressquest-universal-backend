@@ -1,0 +1,24 @@
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# Functions specific
+functions/node_modules/
+functions/lib/ # Если вы компилируете TypeScript в JavaScript в эту папку
+functions/.DS_Store
+functions/npm-debug.log*
+functions/yarn-debug.log*
+functions/yarn-error.log*
+functions/.runtimeconfig.json # Если используется локально
+
+# IDE / OS files
+.idea/
+.vscode/
+*.iml
+*.DS_Store
+Thumbs.db
+
+# Build artifacts (если есть другие)
+build/
+dist/
