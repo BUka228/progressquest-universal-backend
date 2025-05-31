@@ -45,9 +45,9 @@ export const onTaskStatusUpdatedProcessCompletion = onMessagePublished(
       await db.runTransaction(async (t) => {
         const statDoc = await t.get(taskStatsRef);
         const updateData: Partial<TaskStatisticsDocument> = {
-          completionTime: completedAt
-            ? Timestamp.fromDate(new Date(completedAt))
-            : (now as Timestamp),
+          completionTime: completedAt ?
+            Timestamp.fromDate(new Date(completedAt)) :
+            (now as Timestamp),
           wasCompletedOnce: true,
           updatedAt: now,
         };

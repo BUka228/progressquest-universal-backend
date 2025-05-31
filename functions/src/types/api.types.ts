@@ -135,9 +135,11 @@ export interface PomodoroPhaseCompleteData {
   completed: boolean;
 }
 
-export interface CreateUserViewPayload
-  extends Omit<UserViewDocument, "uid" | "id" | "createdAt" | "updatedAt"> {}
-export interface UpdateUserViewPayload extends Partial<CreateUserViewPayload> {}
+export type CreateUserViewPayload = Omit<
+  UserViewDocument,
+  "uid" | "id" | "createdAt" | "updatedAt"
+>;
+export type UpdateUserViewPayload = Partial<CreateUserViewPayload>;
 export interface UserViewResponse
   extends Omit<UserViewDocument, "createdAt" | "updatedAt"> {
   id: string;
@@ -157,16 +159,15 @@ export interface AggregatedTasksRequestPayload {
   sortDirection?: "asc" | "desc";
 }
 
-export interface CreateCustomChallengePayload
-  extends Omit<
-    ChallengeDefinitionDocument,
-    | "id"
-    | "creatorUid"
-    | "scope"
-    | "targetEntityId"
-    | "isActiveGlobally"
-    | "createdAt"
-  > {}
-export interface UpdateCustomChallengePayload
-  extends Partial<CreateCustomChallengePayload> {}
-  
+export type CreateCustomChallengePayload = Omit<
+  ChallengeDefinitionDocument,
+  | "id"
+  | "creatorUid"
+  | "scope"
+  | "targetEntityId"
+  | "isActiveGlobally"
+  | "createdAt"
+>;
+export type UpdateCustomChallengePayload = Partial<
+  CreateCustomChallengePayload
+>;

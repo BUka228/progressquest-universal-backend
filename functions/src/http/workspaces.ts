@@ -107,7 +107,8 @@ export const createWorkspace = onCall(runtimeOptsV2, async (request) => {
     if (!data.isPersonal) {
       throw new HttpsError(
         "invalid-argument",
-        "Для командного пространства необходим teamId или другая логика создания."
+        "Для командного пространства необходим teamId " +
+          "или другая логика создания." // Перенос для уменьшения длины строки
       );
     }
   }

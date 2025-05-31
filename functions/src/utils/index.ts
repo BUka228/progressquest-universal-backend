@@ -14,8 +14,16 @@ import {
 
 const db: Firestore = getFirestore();
 
+
+/**
+ * Проверяет, аутентифицирован ли пользователь.
+ * @param {object} auth - Контекст аутентификации Firebase.
+ * @return {string} UID аутентифицированного пользователя.
+ * @throws {HttpsError} Если пользователь не аутентифицирован.
+ */
 export function assertAuthenticated(
-  auth: import("firebase-functions/v2/https").CallableRequest["auth"]
+  auth: import("firebase-functions/v2/https").CallableRequest["auth"] |
+        undefined
 ): string {
   if (!auth) {
     console.warn("Authentication check failed: No auth context.");
@@ -27,6 +35,12 @@ export function assertAuthenticated(
   return auth.uid;
 }
 
+/**
+ * Получает роль пользователя в указанном командном рабочем пространстве.
+ * @param {string} workspaceId - ID рабочего пространства.
+ * @param {string} userId - ID пользователя.
+ * @return {Promise<string|null>} Роль или null.
+ */
 export async function getUserRoleInWorkspace(
   workspaceId: string,
   userId: string
@@ -52,6 +66,14 @@ export async function getUserRoleInWorkspace(
   }
 }
 
+/**
+ * Проверяет роль пользователя в рабочем пространстве.
+ * @param {string} workspaceId - ID рабочего пространства.
+ * @param {string} userId - ID пользователя.
+ * @param {Array<string>} requiredRoles - Массив допустимых ролей.
+ * @return {Promise<string>} Роль пользователя.
+ * @throws {HttpsError} Если права отсутствуют.
+ */
 export async function assertWorkspaceRole(
   workspaceId: string,
   userId: string,
@@ -72,6 +94,13 @@ export async function assertWorkspaceRole(
   return userRole;
 }
 
+/**
+ * Проверяет, является ли пользователь владельцем личного рабочего пространства.
+ * @param {string} workspaceId - ID рабочего пространства.
+ * @param {string} userId - ID пользователя.
+ * @return {Promise<boolean>} True, если владелец.
+ * @throws {HttpsError} Если Workspace не найден или не личный.
+ */
 export async function assertPersonalWorkspaceOwner(
   workspaceId: string,
   userId: string

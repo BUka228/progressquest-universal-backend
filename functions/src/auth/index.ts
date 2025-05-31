@@ -131,4 +131,3 @@ export const processNewUser = functionsV1.auth.user()
       );
     }
   });
-  

@@ -32,7 +32,7 @@ export const onUserCreatedProcessDefaults = onMessagePublished(
     );
 
     console.log(
-      `[${USER_EVENTS_TOPIC}] Finished processing USER_CREATED for ${userEvent.userId}`
+      `[${USER_EVENTS_TOPIC}] Finished USER_CREATED for ${userEvent.userId}`
     );
   }
 );

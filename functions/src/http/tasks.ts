@@ -4,6 +4,7 @@ import {
   FieldValue,
   Timestamp,
   Query,
+  // DocumentData, // Не используется напрямую, Query покрывает
 } from "firebase-admin/firestore";
 import {
   runtimeOptsV2,
@@ -51,9 +52,9 @@ export const createTask = onCall(runtimeOptsV2, async (request) => {
       const newTaskData: Omit<TaskDocument, "id"> = {
         title: data.title,
         description: data.description || null,
-        dueDate: data.dueDate
-          ? Timestamp.fromDate(new Date(data.dueDate))
-          : null,
+        dueDate: data.dueDate ?
+          Timestamp.fromDate(new Date(data.dueDate)) :
+          null,
         status: "TODO",
         priority: data.priority || "MEDIUM",
         createdAt: now,
@@ -191,7 +192,7 @@ export const updateTaskStatus = onCall(runtimeOptsV2, async (request) => {
       newStatus,
       oldStatus,
       completedAt: newStatus === "DONE" ? new Date().toISOString() : undefined,
-      eventType: "TASK_STATUS_UPDATED"
+      eventType: "TASK_STATUS_UPDATED",
     };
     await pubsub.topic(TASK_EVENTS_TOPIC).publishMessage({json: eventData});
     return {success: true, message: "Task status updated."};
