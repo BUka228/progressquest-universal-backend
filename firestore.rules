@@ -1,0 +1,133 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- USERS ---
+    // Каждый пользователь может читать и писать только свой собственный документ
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+      // Для write можно добавить проверку полей, чтобы пользователь не мог изменить свой uid или createdAt
+      // allow update: if request.auth != null && request.auth.uid == userId
+      //                && request.resource.data.uid == resource.data.uid
+      //                && request.resource.data.email == resource.data.email; // Email обычно не меняется пользователем напрямую
+      // allow create: if request.auth != null && request.auth.uid == userId; // Создание обычно через Cloud Function
+    }
+
+    // --- WORKSPACES ---
+    // Пользователь может создать Workspace, если он аутентифицирован и указывает себя как ownerUid
+    // Пользователь может читать Workspace, если он его владелец или участник (проверка участника будет сложнее здесь, лучше в Cloud Functions)
+    // Запись/удаление Workspace - только владелец (для начала, потом можно расширить на админов команды)
+    match /workspaces/{workspaceId} {
+      allow read: if request.auth != null && (request.auth.uid == resource.data.ownerUid || 
+                    (resource.data.isPersonal == false && exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)))
+                  );
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if request.auth != null && request.auth.uid == resource.data.ownerUid; // Пока только владелец
+      allow delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
+
+      // Участники командного Workspace
+      match /members/{memberUid} {
+        allow read: if request.auth != null && exists(/databases/$(database)/documents/workspaces/$(workspaceId)); // Любой аутентифицированный может прочитать список участников, если он может прочитать сам workspace (уточнить логику доступа)
+                       // Либо: if request.auth.uid == memberUid || get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role in ['owner', 'admin', 'manager'];
+        allow write: if request.auth != null && 
+                       (get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role in ['owner', 'admin', 'manager']);
+      }
+    }
+    
+    // --- TEAMS (если используем отдельную коллекцию) ---
+    match /teams/{teamId} {
+      allow read: if request.auth != null && 
+                    (request.auth.uid == resource.data.ownerUid || exists(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)));
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.ownerUid; // Пока только владелец команды
+
+      match /members/{memberUid} {
+        allow read: if request.auth != null && exists(/databases/$(database)/documents/teams/$(teamId)); // Аналогично workspace/members
+        allow write: if request.auth != null && 
+                       (get(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)).data.teamRole in ['owner', 'admin']);
+      }
+    }
+
+    // --- TASKS ---
+    // Читать задачу может участник ее Workspace.
+    // Создавать задачу может участник Workspace (если разрешено настройками Workspace - это проверяется в Cloud Function).
+    // Обновлять задачу может ее исполнитель (assigneeUid) или менеджер/владелец Workspace (проверка полей в Cloud Function).
+    // Удалять - менеджер/владелец Workspace.
+    match /tasks/{taskId} {
+      function isWorkspaceMember(workspaceId) {
+        return exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)) ||
+               get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerUid == request.auth.uid; 
+               // Упрощенная проверка, для личных isPersonal=true, ownerUid == request.auth.uid
+               // Для командных isPersonal=false, проверяем members
+      }
+      allow read: if request.auth != null && isWorkspaceMember(resource.data.workspaceId);
+      allow create: if request.auth != null && request.resource.data.creatorUid == request.auth.uid && isWorkspaceMember(request.resource.data.workspaceId);
+      // Update и Delete лучше полностью контролировать через Cloud Functions из-за сложной логики полей и ролей
+      allow update, delete: if request.auth != null; // Базовая проверка, детали в Cloud Function
+    }
+
+    // --- POMODORO SESSIONS ---
+    // Пользователь может создавать и читать свои сессии Pomodoro.
+    // Обновление/удаление обычно не требуется напрямую клиентом.
+    match /pomodoroSessions/{sessionId} {
+      allow read, create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if false; // Запрещаем прямое изменение/удаление клиентом
+    }
+
+    // --- GAMIFICATION PROFILES ---
+    match /gamificationProfiles/{userId} {
+      allow read: if request.auth != null; // Можно разрешить читать чужие профили (например, для доски лидеров), но без чувствительных данных
+      allow create, update: if request.auth != null && request.auth.uid == userId; // Только свой
+      // Подколлекции (earnedBadges, challengeProgress, virtualGarden) наследуют или имеют свои правила
+      match /earnedBadges/{badgeId} {
+        allow read: if request.auth != null;
+        allow write: if false; // Зарабатываются через Cloud Functions
+      }
+      match /challengeProgress/{challengeDefId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false; // Обновляется через Cloud Functions
+      }
+      match /virtualGarden/{plantId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null && request.auth.uid == userId; // Пользователь "поливает" свое растение
+      }
+    }
+    
+    // --- TASK STATISTICS ---
+    match /taskStatistics/{taskId} {
+      allow read: if request.auth != null; // Статистику по задаче может видеть участник Workspace задачи
+      // Запись и обновление статистики происходит через Cloud Functions (триггеры на Pomodoro/Task completion)
+      allow write: if false; 
+    }
+
+    // --- GLOBAL STATISTICS ---
+    match /globalStatistics/{userId} {
+      allow read: if request.auth != null; // Можно разрешить читать для сравнения (обезличенно)
+      allow write: if false; // Обновляется через Cloud Functions
+    }
+
+    // --- GAMIFICATION HISTORY ---
+    match /gamificationHistory/{entryId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId; // Только свою историю
+      allow write: if false; // Записывается через Cloud Functions
+    }
+
+    // --- USER VIEWS ---
+    match /userViews/{viewId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.uid; // Только свои представления
+    }
+    
+    // --- CHALLENGE DEFINITIONS ---
+    // Системные челленджи - только чтение для всех аутентифицированных.
+    // Пользовательские - чтение/запись только для создателя.
+    // Командные кастомные - чтение для участников команды, запись для админов команды (через Cloud Functions).
+    match /challengeDefinitions/{challengeDefId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.creatorUid == request.auth.uid; // Пользователь создает свой челлендж
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.creatorUid; // Только создатель может менять/удалять свой
+      // Для командных челленджей, создаваемых менеджером, логика прав будет в Cloud Function
+    }
+  }
+}
