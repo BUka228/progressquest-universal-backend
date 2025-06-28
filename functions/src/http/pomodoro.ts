@@ -34,7 +34,7 @@ const db = getFirestore();
 const pubsub = new PubSub();
 
 export const startPomodoroPhase = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest<StartPomodoroPhasePayload>) => {
     const uid = assertAuthenticated(request.auth);
     const data = request.data;
@@ -120,7 +120,7 @@ export const startPomodoroPhase = onCall(
 );
 
 export const completePomodoroPhase = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest<CompletePomodoroPhasePayload>) => {
     const uid = assertAuthenticated(request.auth);
     const data = request.data;

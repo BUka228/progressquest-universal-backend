@@ -264,3 +264,45 @@ export async function assertTeamRole(
   }
   return userRole;
 }
+
+/**
+ * Проверяет доступ пользователя к рабочему пространству.
+ * @param {string} workspaceId - ID рабочего пространства.
+ * @param {string} userId - ID пользователя.
+ * @return {Promise<WorkspaceDocument>} Данные рабочего пространства.
+ * @throws {HttpsError} Если доступ запрещен.
+ */
+export const assertWorkspaceAccess = async (
+  workspaceId: string,
+  userId: string
+): Promise<WorkspaceDocument> => {
+  const wsRef = db.collection(WORKSPACES_COLLECTION).doc(workspaceId);
+  const wsDoc = await wsRef.get();
+  if (!wsDoc.exists) {
+    throw new HttpsError(
+      "not-found",
+      `Рабочее пространство с ID ${workspaceId} не найдено.`
+    );
+  }
+  const wsData = wsDoc.data() as WorkspaceDocument;
+
+  if (wsData.isPersonal) {
+    // Для личного - проверяем владение
+    if (wsData.ownerUid !== userId) {
+      throw new HttpsError(
+        "permission-denied",
+        "У вас нет доступа к этому личному пространству."
+      );
+    }
+  } else {
+    // Для командного - проверяем членство
+    const userRole = await getUserRoleInWorkspace(workspaceId, userId);
+    if (!userRole) {
+      throw new HttpsError(
+        "permission-denied",
+        "Вы не являетесь участником этого рабочего пространства."
+      );
+    }
+  }
+  return wsData;
+};

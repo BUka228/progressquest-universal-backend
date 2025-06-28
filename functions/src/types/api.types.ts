@@ -240,6 +240,7 @@ export interface CreateTaskPayload {
   priority?: TaskPriorityType;
   assigneeUid?: string | null;
   tags?: string[];
+  subtasks?: CreateSubtaskPayload[];
   approachParams?: TaskApproachParamsClientDto | null;
   pomodoroEstimatedMinutes?: number | null;
 }
@@ -257,6 +258,7 @@ export interface TaskClientDto {
   assigneeUid: string | null;
   workspaceId: string;
   tags: string[];
+  subtasks?: SubtaskClientDto[];
   pomodoroEstimatedCycles: number | null;
   pomodoroEstimatedMinutes: number | null;
   approachParams: TaskApproachParamsClientDto | null;

@@ -56,7 +56,7 @@ const logger = functions.logger;
 // --- ПОЛУЧЕНИЕ ДАННЫХ ---
 
 export const getGamificationProfile = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest // warning: no-unused-vars - оставляем
   ): Promise<GetGamificationProfileResponse> => {
@@ -114,7 +114,7 @@ export const getGamificationProfile = onCall(
 );
 
 export const getAllBadgeDefinitions = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest
   ): Promise<GetAllBadgeDefinitionsResponseDto> => {
@@ -143,7 +143,7 @@ export const getAllBadgeDefinitions = onCall(
 );
 
 export const getEarnedBadges = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest): Promise<GetBadgesResponse> => {
     const uid = assertAuthenticated(request.auth);
     try {
@@ -176,7 +176,7 @@ export const getEarnedBadges = onCall(
 );
 
 export const getActiveChallenges = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest // warning: no-unused-vars - оставляем
   ): Promise<GetChallengesResponse> => {
@@ -189,7 +189,7 @@ export const getActiveChallenges = onCall(
 );
 
 export const getVirtualGarden = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest): Promise<GetVirtualGardenResponse> => {
     const uid = assertAuthenticated(request.auth);
     try {
@@ -228,7 +228,7 @@ export const getVirtualGarden = onCall(
 );
 
 export const getStoreItems = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest): Promise<GetStoreItemsResponse> => {
     assertAuthenticated(request.auth);
     try {
@@ -264,7 +264,7 @@ export const getStoreItems = onCall(
 // --- ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ ---
 
 export const claimDailyReward = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest): Promise<ClaimDailyRewardResponseDto> => {
     const uid = assertAuthenticated(request.auth);
     const profileRef = db.collection(GAMIFICATION_PROFILES_COLLECTION).doc(uid);
@@ -351,7 +351,7 @@ export const claimDailyReward = onCall(
 
 
 export const selectPlantInGarden = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<SelectPlantRequestPayload>
   ): Promise<SuccessResponse> => {
@@ -385,7 +385,7 @@ export const selectPlantInGarden = onCall(
 );
 
 export const waterPlantInGarden = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<WaterPlantRequestPayload>
   ): Promise<WaterPlantResponseDto> => {
@@ -446,7 +446,7 @@ export const waterPlantInGarden = onCall(
 );
 
 export const purchaseStoreItem = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<PurchaseStoreItemPayload>
   ): Promise<PurchaseStoreItemResponse> => {
@@ -534,7 +534,7 @@ export const purchaseStoreItem = onCall(
 // --- УПРАВЛЕНИЕ ЧЕЛЛЕНДЖАМИ ---
 
 export const createCustomChallenge = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<CreateCustomChallengePayload>
   ): Promise<CreateChallengeResponse> => {
@@ -602,7 +602,7 @@ export const createCustomChallenge = onCall(
 );
 
 export const deleteCustomChallenge = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<DeleteChallengePayload>
   ): Promise<SuccessResponse> => {

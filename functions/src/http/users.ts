@@ -60,7 +60,7 @@ const FIRESTORE_BATCH_LIMIT = 500;
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 export const getCurrentUserProfile = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest): Promise<GetUserProfileResponse> => {
     const uid = assertAuthenticated(request.auth);
     const userDocRef = db.collection(USERS_COLLECTION).doc(uid);
@@ -119,7 +119,7 @@ export const getCurrentUserProfile = onCall(
 );
 
 export const updateUserProfile = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<UpdateUserProfilePayload>
   ): Promise<UpdateUserProfileResponse> => {
@@ -200,7 +200,7 @@ export const updateUserProfile = onCall(
 );
 
 export const updateUserAppSettings = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<UpdateUserAppSettingsPayload>
   ): Promise<UpdateUserAppSettingsResponse> => {
@@ -230,7 +230,7 @@ export const updateUserAppSettings = onCall(
 );
 
 export const updateUserPomodoroSettings = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<UpdateUserPomodoroSettingsPayload>
   ): Promise<UpdateUserPomodoroSettingsResponse> => {
@@ -263,7 +263,7 @@ export const updateUserPomodoroSettings = onCall(
 );
 
 export const updateUserActiveItems = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<UpdateUserActiveItemsPayload>
   ): Promise<UpdateUserActiveItemsResponse> => {
@@ -305,7 +305,7 @@ export const updateUserActiveItems = onCall(
 // --- Управление Учетными Данными ---
 
 export const sendPasswordResetEmail = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<SendPasswordResetEmailPayload>
   ): Promise<SuccessResponse> => {
@@ -350,7 +350,7 @@ export const sendPasswordResetEmail = onCall(
 );
 
 export const registerFcmToken = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<RegisterFcmTokenPayload>
   ): Promise<SuccessResponse> => {
@@ -390,7 +390,7 @@ export const registerFcmToken = onCall(
 );
 
 export const unregisterFcmToken = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<UnregisterFcmTokenPayload>
   ): Promise<SuccessResponse> => {
@@ -440,7 +440,7 @@ async function deleteUserData(uid: string) {
 }
 
 export const requestAccountDeletion = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest): Promise<SuccessResponse> => {
     const uid = assertAuthenticated(request.auth);
     logger.warn(

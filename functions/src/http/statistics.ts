@@ -33,7 +33,7 @@ const db = getFirestore();
 const logger = functions.logger;
 
 export const getGlobalStatistics = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest): Promise<GetGlobalStatisticsResponse> => {
     const uid = assertAuthenticated(request.auth);
     try {
@@ -73,7 +73,7 @@ export const getGlobalStatistics = onCall(
 );
 
 export const getTaskStatistics = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<GetTaskStatisticsPayload>
   ): Promise<GetTaskStatisticsResponse> => {
@@ -128,7 +128,7 @@ export const getTaskStatistics = onCall(
 );
 
 export const getGamificationHistory = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<GetGamificationHistoryPayload>
   ): Promise<GetGamificationHistoryResponse> => {
@@ -190,7 +190,7 @@ export const getGamificationHistory = onCall(
 );
 
 export const getStatsPeriodSummary = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<StatsTrendRequestPayload>
   ): Promise<StatsPeriodSummaryClientDto> => {

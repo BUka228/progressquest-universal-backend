@@ -19,7 +19,11 @@ import {
   DELETED_ENTITIES_COLLECTION,
   SUBTASKS_COLLECTION,
 } from "../config";
-import {assertAuthenticated, assertPersonalWorkspaceOwner} from "../utils";
+import {
+  assertAuthenticated,
+  assertPersonalWorkspaceOwner,
+  assertWorkspaceAccess,
+} from "../utils";
 import {
   SubtaskDocument,
   TaskDocument,
@@ -57,7 +61,7 @@ const db = getFirestore();
 const pubsub = new PubSub();
 
 export const createTask = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest<CreateTaskPayload>) => {
     const uid = assertAuthenticated(request.auth);
     const data = request.data;
@@ -68,7 +72,7 @@ export const createTask = onCall(
         "Title & WorkspaceId required."
       );
     }
-    await assertPersonalWorkspaceOwner(data.workspaceId, uid);
+    await assertWorkspaceAccess(data.workspaceId, uid);
 
     const now = FieldValue.serverTimestamp();
     const newTaskRef = db.collection(TASKS_COLLECTION).doc();
@@ -159,17 +163,26 @@ export const createTask = onCall(
 );
 
 export const getTasks = onCall(
-  commonRuntimeOpts,
-  async (request: CallableRequest<GetTasksPayload>) => {
+  {...commonRuntimeOpts, cors: true},
+  async (
+    request: CallableRequest<GetTasksPayload>
+  ): Promise<GetTasksResponse> => {
     const uid = assertAuthenticated(request.auth);
     const {viewId, workspaceId, filters, sortBy, sortDirection} = request.data;
 
-    let targetWorkspaceIds: string[] = [];
-    let effectiveFilters: ViewFiltersClientDto | null = filters || null;
-    let effectiveSortBy = sortBy;
-    let effectiveSortDir = sortDirection;
+    if (!viewId && !workspaceId) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Должен быть предоставлен viewId или workspaceId."
+      );
+    }
 
     try {
+      let targetWorkspaceIds: string[] = [];
+      let effectiveFilters: ViewFiltersClientDto | null = filters || null;
+      let effectiveSortBy = sortBy;
+      let effectiveSortDir = sortDirection;
+
       if (viewId) {
         const viewRef = db.collection(USERS_COLLECTION).doc(uid)
           .collection("views").doc(viewId);
@@ -180,29 +193,33 @@ export const getTasks = onCall(
         const viewDataFromDb = viewDoc.data() as UserViewDocument;
         targetWorkspaceIds = viewDataFromDb.workspaceIds;
 
+        for (const wsId of targetWorkspaceIds) {
+          await assertWorkspaceAccess(wsId, uid);
+        }
+
         if (viewDataFromDb.filters) {
           const dbFilters = viewDataFromDb.filters;
-          let clientDateRange: DateRangeFilterClientDto | null | undefined =
-            undefined;
+          let clientDateRange: DateRangeFilterClientDto | undefined;
 
           if (dbFilters.dateRange) {
-            const dr = dbFilters.dateRange;
             clientDateRange = {
-              start: dr.start ?
-                (dr.start as Timestamp).toDate().toISOString() :
+              start: dbFilters.dateRange.start ?
+                (dbFilters.dateRange.start as Timestamp)
+                  .toDate().toISOString() :
                 null,
-              end: dr.end ? (dr.end as Timestamp).toDate().toISOString() : null,
-              type: dr.type,
+              end: dbFilters.dateRange.end ?
+                (dbFilters.dateRange.end as Timestamp).toDate().toISOString() :
+                null,
+              type: dbFilters.dateRange.type,
             };
           }
-
           effectiveFilters = {
-            status: dbFilters.status || undefined,
-            priority: dbFilters.priority || undefined,
-            tagsInclude: dbFilters.tagsInclude || undefined,
-            tagsExclude: dbFilters.tagsExclude || undefined,
+            status: dbFilters.status,
+            priority: dbFilters.priority,
+            tagsInclude: dbFilters.tagsInclude,
+            tagsExclude: dbFilters.tagsExclude,
             dateRange: clientDateRange,
-            assignee: dbFilters.assignee || undefined,
+            assignee: dbFilters.assignee,
           };
         } else {
           effectiveFilters = null;
@@ -210,49 +227,34 @@ export const getTasks = onCall(
 
         effectiveSortBy = viewDataFromDb.sortBy || effectiveSortBy;
         effectiveSortDir = viewDataFromDb.sortDirection || effectiveSortDir;
-
-        if (targetWorkspaceIds.length === 0) {
-          return {tasks: []} as GetTasksResponse;
-        }
       } else if (workspaceId) {
+        await assertWorkspaceAccess(workspaceId, uid);
         targetWorkspaceIds = [workspaceId];
-      } else {
-        throw new HttpsError(
-          "invalid-argument",
-          "Должен быть предоставлен viewId или workspaceId."
-        );
       }
 
-      for (const wsId of targetWorkspaceIds) {
-        await assertPersonalWorkspaceOwner(wsId, uid);
+      if (targetWorkspaceIds.length === 0) {
+        return {tasks: []};
       }
 
       let query: Query = db.collection(TASKS_COLLECTION)
-        .where("workspaceId", "in", targetWorkspaceIds)
-        .where("creatorUid", "==", uid);
+        .where("workspaceId", "in", targetWorkspaceIds);
 
       if (effectiveFilters) {
         if (effectiveFilters.status && effectiveFilters.status.length > 0) {
-          if (effectiveFilters.status.length < 30) {
-            query = query.where("status", "in", effectiveFilters.status);
-          }
+          query = query.where("status", "in", effectiveFilters.status);
         }
         if (effectiveFilters.priority && effectiveFilters.priority.length > 0) {
-          if (effectiveFilters.priority.length < 30) {
-            query = query.where("priority", "in", effectiveFilters.priority);
-          }
+          query = query.where("priority", "in", effectiveFilters.priority);
         }
         if (
           effectiveFilters.tagsInclude &&
           effectiveFilters.tagsInclude.length > 0
         ) {
-          if (effectiveFilters.tagsInclude.length < 30) {
-            query = query.where(
-              "tags",
-              "array-contains-any",
-              effectiveFilters.tagsInclude
-            );
-          }
+          query = query.where(
+            "tags",
+            "array-contains-any",
+            effectiveFilters.tagsInclude
+          );
         }
         if (effectiveFilters.dateRange) {
           const drClient = effectiveFilters.dateRange;
@@ -266,7 +268,7 @@ export const getTasks = onCall(
             query = query.where(
               fieldToFilter,
               ">=",
-              Timestamp.fromDate(new Date(drClient.start))
+              Timestamp.fromDate(new Date(drClient.start as string | number))
             );
           }
           if (drClient.end) {
@@ -318,11 +320,11 @@ export const getTasks = onCall(
             null,
         } as TaskClientDto;
       });
-      return {tasks} as GetTasksResponse;
+
+      return {tasks};
     } catch (e: any) {
       console.error(
-        `[Tasks] Error fetching tasks for user ${uid} ` +
-          `(wsId: ${workspaceId}, viewId: ${viewId}):`,
+        `[Tasks] Error fetching tasks for user ${uid}`,
         e
       );
       if (e instanceof HttpsError) {
@@ -338,7 +340,7 @@ export const getTasks = onCall(
 );
 
 export const getTaskDetails = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest<GetTaskDetailsPayload>) => {
     const uid = assertAuthenticated(request.auth);
     const {taskId} = request.data;
@@ -391,7 +393,7 @@ export const getTaskDetails = onCall(
 );
 
 export const updateTask = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest<UpdateTaskPayload>) => {
     const uid = assertAuthenticated(request.auth);
     const data = request.data;
@@ -488,7 +490,7 @@ export const updateTask = onCall(
 );
 
 export const updateTaskStatus = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest<UpdateTaskStatusPayload>) => {
     const uid = assertAuthenticated(request.auth);
     const {taskId, newStatus, workspaceId} = request.data;
@@ -574,7 +576,7 @@ export const updateTaskStatus = onCall(
 );
 
 export const deleteTask = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request: CallableRequest<DeleteTaskPayload>) => {
     const uid = assertAuthenticated(request.auth);
     const {taskId} = request.data;
@@ -611,7 +613,7 @@ export const deleteTask = onCall(
 );
 
 export const getTaskChanges = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<GetTaskChangesPayload>
   ): Promise<GetTaskChangesResponse> => {
@@ -693,7 +695,7 @@ export const getTaskChanges = onCall(
 );
 
 export const addSubtask = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<CreateSubtaskPayload>
   ): Promise<SubtaskClientDto> => {
@@ -757,7 +759,7 @@ export const addSubtask = onCall(
 
 // === НОВАЯ ФУНКЦИЯ: deleteSubtask ===
 export const deleteSubtask = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (
     request: CallableRequest<DeleteSubtaskPayload>
   ): Promise<SuccessResponse> => {

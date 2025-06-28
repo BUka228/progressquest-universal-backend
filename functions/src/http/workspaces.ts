@@ -44,7 +44,7 @@ const db = getFirestore();
 const pubsub = new PubSub();
 
 export const createWorkspace = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request) => {
     const uid = assertAuthenticated(request.auth);
     const data = request.data as CreateWorkspacePayload;
@@ -153,13 +153,12 @@ export const createWorkspace = onCall(
 );
 
 export const getUserWorkspaces = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request) => {
     const userUID = assertAuthenticated(request.auth);
     const clientWorkspaces: WorkspaceClientDto[] = [];
 
     try {
-      // --- ИЗМЕНЕНИЕ НАЧАЛО: Оптимизированная логика запросов ---
 
       // 1. Запрос личных рабочих пространств
       const personalSnapshot = await db
@@ -254,7 +253,7 @@ export const getUserWorkspaces = onCall(
 );
 
 export const getWorkspaceDetails = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request) => {
     const uid = assertAuthenticated(request.auth);
     const {workspaceId} = request.data as GetWorkspaceDetailsPayload;
@@ -321,7 +320,7 @@ export const getWorkspaceDetails = onCall(
 );
 
 export const updateWorkspace = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request) => {
     const uid = assertAuthenticated(request.auth);
     const data = request.data as UpdateWorkspacePayload;
@@ -427,7 +426,7 @@ export const updateWorkspace = onCall(
 );
 
 export const deleteWorkspace = onCall(
-  commonRuntimeOpts,
+  {...commonRuntimeOpts, cors: true},
   async (request) => {
     const uid = assertAuthenticated(request.auth);
     const {workspaceId} = request.data as DeleteWorkspacePayload;
