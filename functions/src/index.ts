@@ -4,9 +4,14 @@ import {commonRuntimeOpts} from "./config";
 
 initializeApp();
 setGlobalOptions(commonRuntimeOpts);
-export * from "./auth";
-export * from "./http";
-export * from "./pubsub";
+
+export * from "./features/user";
+export * from "./features/workspace";
+export * from "./features/task";
+export * from "./features/gamification";
+export * from "./features/pomodoro";
+export * from "./features/statistics";
+
 
 console.log(
   `[Index] Functions initialized with region: ${commonRuntimeOpts.region}`

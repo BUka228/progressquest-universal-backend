@@ -17,7 +17,7 @@ import {
   ChallengeProgressDocument,
   ChallengeEventType,
   EarnedBadgeDocument,
-} from "../types/firestore.types";
+} from "../features/gamification/types/firestore.types";
 
 const db = getFirestore();
 const logger = functions.logger;
